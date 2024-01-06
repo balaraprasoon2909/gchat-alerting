@@ -1,8 +1,9 @@
 import pandas as pd
 import os
-import click
 import requests
 import json
+import traceback
+import curlify
 
 WEBHOOK_URL = "WEBHOOK_URL"
 
@@ -10,12 +11,12 @@ class ChatAlerting :
 
     def __init__(
         self,
-        **kwargs
+        publish_report:bool
     ) -> None:
         
-        self.row_limit = kwargs.get("row_limit", -1)
-        self.publish_report = kwargs.get("publish_report", False)
-        self.webhook_url = os.getenv(WEBHOOK_URL, "")
+        self.publish_report = publish_report
+        # self.webhook_url = os.getenv(WEBHOOK_URL, "")
+        self.webhook_url = "https://hooks.slack.com/services/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"
         self.file_path = "/Users/prasoonbalara/Downloads/cereal.csv"
         self.unique_manufacturers = {}
         self.headers = {
@@ -31,18 +32,20 @@ class ChatAlerting :
         for i in range(len(col_values)):
             val = col_values[i]
             result = result + val + (' ' * (self.max_rows_per_column - len(val)))
-            if i != len(col_values - 1):
+            if i != len(col_values) - 1:
                 result = result + "|"
-            result = result + '-' * (2*self.max_rows_per_column + 1)
+        result = result + '\n' + '-' * (2*self.max_rows_per_column + 1)
         return result
 
 
-    def publish_report(self):
+    def publish_report_to_chat(self):
         if not self.webhook_url:
             raise ValueError("No webhook url found")
 
         rows = []
-        for key, val in self.unique_manufacturers:
+        rows.append(self.get_row(["Manufacturer", "Count"]))
+        for key in self.unique_manufacturers:
+            val = str(self.unique_manufacturers.get(key))
             rows.append(self.get_row(
                 [key, val]
             ))
@@ -56,6 +59,8 @@ class ChatAlerting :
         request_body = json.dumps(body_data)
 
         response = requests.post(self.webhook_url, headers=self.headers, data=request_body)
+        print(curlify.to_curl(response.request))
+
         if response.status_code != 200:
             raise ValueError("received non 200 status code while sending message via webhook")
 
@@ -78,27 +83,17 @@ class ChatAlerting :
 
         if self.publish_report:
             try :
-                self.publish_report()
+                self.publish_report_to_chat()
             except Exception as e:
-                print(e)
+                print(traceback.print_exc())
         
-
-
-
-@click.command()
-@click.command(
-    "--publish-report",
-    is_flag=True,
-    help="Send report to slack"
-)
-def cli(**kwargs):
-    action = ChatAlerting(**kwargs)
-    action.run()
 
 
 if __name__ == '__main__':
     try :
-        cli()
+        print(os.getenv(WEBHOOK_URL, ""))
+        action = ChatAlerting(True)
+        action.run()
     except Exception as e:
         print("Error while running alerting script", e)
     except KeyboardInterrupt:
