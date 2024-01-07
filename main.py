@@ -15,8 +15,7 @@ class ChatAlerting :
     ) -> None:
         
         self.publish_report = publish_report
-        # self.webhook_url = os.getenv(WEBHOOK_URL, "")
-        self.webhook_url = "https://hooks.slack.com/services/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"
+        self.webhook_url = os.getenv(WEBHOOK_URL, "")
         self.file_path = "/Users/prasoonbalara/Downloads/cereal.csv"
         self.unique_manufacturers = {}
         self.headers = {
